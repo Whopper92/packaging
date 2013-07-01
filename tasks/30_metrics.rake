@@ -1,7 +1,6 @@
 if @build.benchmark
   @metrics          = []
   @pg_major_version = nil
-  @db_table         = 'metrics'
 
   def add_metrics args
     @metrics << {
@@ -12,14 +11,14 @@ if @build.benchmark
       :pe_version => ( args[:pe_version]  || @build.pe_version ),
       :date       => ( args[:date]        || timestamp         ),
       :who        => ( args[:who]         || ENV['USER']       ),
-      :where      => ( args[:where]       || hostname          )
+      :where      => ( args[:where]       || hostname          ),
+      :success    => ( args[:success]     || false             ),
+      :log        => ( args[:log]         || "Not available"   )
     }
   end
 
   def post_metrics
-    if psql = find_tool('psql')
-      ENV["PGCONNECT_TIMEOUT"]="10"
-
+      metric_server = "http://dagr.delivery.puppetlabs.net:4567/overview/metrics"
       @metrics.each do |metric|
         date        = metric[:date]
         pkg         = metric[:pkg]
@@ -29,13 +28,25 @@ if @build.benchmark
         where       = metric[:where]
         version     = metric[:version]
         pe_version  = metric[:pe_version]
-        @pg_major_version ||= %x{/usr/bin/psql --version}.match(/psql \(PostgreSQL\) (\d)\..*/)[1].to_i
-        no_pass_fail = "-w" if @pg_major_version > 8
-        %x{#{psql} #{no_pass_fail} -c "INSERT INTO #{@db_table} \
-        (date, package, dist, build_time, build_user, build_loc, version, pe_version) \
-        VALUES ('#{date}', '#{pkg}', '#{dist}', #{bench}, '#{who}', '#{where}', '#{version}', '#{pe_version}')"}
-      end
-      @metrics = []
+        success     = metric[:success]
+        log         = metric[:log]
+
+      uri = URI(metric_server)
+      res = Net::HTTP.post_form(
+        uri,
+        {
+          'date'                => Time.now.to_s,
+          'package_name'        => pkg,
+          'dist'                => dist,
+          'package_build_time'  => bench,
+          'build_user'          => who,
+          'build_loc'           => where,
+          'version'             => version,
+          'pe_version'          => pe_version,
+          'success'             => success,
+          'build_log'           => log,
+        })
     end
+    @metrics = []
   end
 end

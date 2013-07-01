@@ -4,12 +4,16 @@ def pdebuild args
   set_cow_envs(cow)
   update_cow(cow)
   begin
-    sh "pdebuild  --configfile #{@build.pbuild_conf} \
+    cmd_string = "pdebuild  --configfile #{@build.pbuild_conf} \
                   --buildresult #{results_dir} \
                   --pbuilder cowbuilder -- \
                   --basepath /var/cache/pbuilder/#{cow}/"
+    @build_logger.info "#{cmd_string}"
+    output = `#{cmd_string}`
+    @build_logger.info "#{output}"
   rescue Exception => e
     puts e
+    @build_logger.error "#{e}"
     handle_method_failure('pdebuild', args)
   end
 end
@@ -18,16 +22,32 @@ def update_cow(cow)
   ENV['PATH'] = "/usr/sbin:#{ENV['PATH']}"
   set_cow_envs(cow)
   retry_on_fail(:times => 3) do
-    sh "sudo -E /usr/sbin/cowbuilder --update --override-config --configfile #{@build.pbuild_conf} --basepath /var/cache/pbuilder/#{cow} --distribution #{ENV['DIST']} --architecture #{ENV['ARCH']}"
+    cmd_string = "sudo -E /usr/sbin/cowbuilder --update --override-config --configfile #{@build.pbuild_conf} --basepath /var/cache/pbuilder/#{cow} --distribution #{ENV['DIST']} --architecture #{ENV['ARCH']}"
+    @build_logger.info "#{cmd_string}"
+    output = `#{cmd_string}`
+    @build_logger.info "#{output}"
   end
 end
 
 def debuild args
   results_dir = args[:work_dir]
   begin
-    sh "debuild --no-lintian -uc -us"
+    cmd_string = "debuild --no-lintian -uc -us"
+    @build_logger.info "#{cmd_string}"
+    output = `#{cmd_string}`
+    @build_logger.info "#{output}"
   rescue
-    STDERR.puts "Something went wrong. Hopefully the backscroll or #{results_dir}/#{@build.project}_#{@build.debversion}.build file has a clue."
+    err_log_file = ''
+    Find.find("#{results_dir}") do |path|
+      err_log_file = path if path =~ /.*\.build$/
+    end
+    err_log_file != '' ? err_log = File.read("#{err_log_file}") : err_log = "N/A"
+    err_string   = "Something went wrong. Hopefully the backscroll or #{results_dir}/#{@build.project}_#{@build.debversion}/.build file has a clue."
+    @build_logger.error "#{err_string}"
+    @build_logger.error "#{err_log}"
+    STDERR.puts err_string
+    add_metrics({ :dist => ENV['DIST'], :bench => 0, :success => false, :log => @strio.string }) if @build.benchmark
+    post_metrics if @build.benchmark
     exit 1
   end
 end
@@ -62,8 +82,10 @@ task :build_deb, :deb_command, :cow do |t,args|
       rm_rf work_dir
     end
   end
+  puts "Finished building in: #{bench}"
   # See 30_metrics.rake to see what this is doing
-  add_metrics({ :dist => ENV['DIST'], :bench => bench }) if @build.benchmark
+  add_metrics({ :dist => ENV['DIST'], :bench => bench, :success => true,  :log => @strio.string }) if @build.benchmark
+  post_metrics if @build.benchmark
 end
 
 namespace :package do

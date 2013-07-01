@@ -21,14 +21,18 @@
 def mock(mock_config, srpm)
   configdir = nil
   unless mock = find_tool('mock')
-    warn "mock is required for building rpms with mock. Please install mock and try again."
+    warn_string =  "mock is required for building rpms with mock. Please install mock and try again."
+    @build_logger.error "#{warn_string}"
+    warn warn_string
+    add_metrics({ :dist => ENV['DIST'], :bench => 0, :success => false, :log => @strio.string }) if @build.benchmark
+    post_metrics if @build.benchmark
     exit 1
   end
   if @build.random_mockroot
     basedir = get_temp
     chown("#{ENV['USER']}", "mock", basedir)
     # Mock requires the sticky bit be set on the basedir
-    chmod(02775, basedir)
+    output = `chmod(02775, basedir)`
     mockfile = File.join('/', 'etc', 'mock', "#{mock_config}.cfg")
     puts "Setting mock basedir to #{basedir}"
     config = mock_with_basedir(mockfile, basedir)
@@ -38,7 +42,8 @@ def mock(mock_config, srpm)
     configdir_arg = " --configdir #{configdir}"
     mock << configdir_arg
   end
-  sh "#{mock} -r #{mock_config} #{srpm}"
+  output = `#{mock} -r #{mock_config} #{srpm}`
+  @build_logger.info "${output}"
   # Clean up the configdir
   rm_r configdir unless configdir.nil?
 
@@ -151,7 +156,8 @@ def build_rpm_with_mock(mocks)
         end
       end
     end
-    add_metrics({ :dist => "#{family}-#{version}", :bench => bench }) if @build.benchmark
+    puts "Finished building in: #{bench}"
+    add_metrics({ :dist => ENV['DIST'], :bench => bench, :success => true, :log => @strio.string }) if @build.benchmark
   end
 end
 

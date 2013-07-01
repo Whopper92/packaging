@@ -1,6 +1,10 @@
 require 'yaml'
 require 'erb'
 require 'benchmark'
+require 'stringio'
+require 'logger'
+require 'find'
+require 'net/http'
 load File.expand_path('../build.rake', __FILE__)
 
 ##
@@ -90,6 +94,10 @@ end
 if @build.debug
   @build.print_params
 end
+
+# Log object for metric gathering
+@strio = StringIO.new
+@build_logger = Logger.new @strio
 
 ##
 # MM 1-22-2013

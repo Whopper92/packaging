@@ -536,5 +536,3 @@ def curl_form_data(uri, form_data=[])
   sh "#{curl} #{post_string}"
   return $?.success?
 end
-
-

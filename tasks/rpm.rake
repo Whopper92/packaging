@@ -21,7 +21,8 @@ def build_rpm(buildarg = "-bs")
   end
   cp_p "pkg/#{@build.project}-#{@build.version}.tar.gz", "#{temp}/SOURCES"
   erb "ext/redhat/#{@build.project}.spec.erb", "#{temp}/SPECS/#{@build.project}.spec"
-  sh "rpmbuild #{args} #{buildarg} --nodeps #{temp}/SPECS/#{@build.project}.spec"
+  output = `rpmbuild #{args} #{buildarg} --nodeps #{temp}/SPECS/#{@build.project}.spec`
+  @build_logger.info "#{output}"
   mv FileList["#{temp}/SRPMS/*.rpm"], "pkg/srpm"
   if buildarg == '-ba'
     mv FileList["#{temp}/RPMS/*/*.rpm"], "pkg/rpm"
@@ -43,7 +44,11 @@ namespace :package do
 
   desc "Create .rpm from this git repository (unsigned)"
   task :rpm => :tar do
-    build_rpm("-ba")
+    bench = Benchmark.realtime do
+      build_rpm("-ba")
+    end
+  add_metrics({ :dist => ENV['DIST'], :bench => bench, :success => true, :log => @strio.string }) if @build.benchmark
+  post_metrics if @build.benchmark
   end
 end
 

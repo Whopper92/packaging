@@ -254,4 +254,3 @@ if @build.build_dmg
     task :dmg => "package:apple"
   end
 end
-
