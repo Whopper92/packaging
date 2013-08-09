@@ -10,8 +10,8 @@ def pdebuild args
                   --basepath /var/cache/pbuilder/#{cow}/"
     $?.success? or fail "Failed to build deb with #{cow}!"
   end
+  puts 'In pdebuild! Adding metrics!'
   add_metrics({ :package_type => 'deb', :package_build_time => bench}) if @build.is_jenkins_build == false
-  post_metrics if @build.is_jenkins_build == false
 end
 
 def update_cow(cow)
@@ -27,7 +27,7 @@ def debuild args
   begin
     sh "debuild --no-lintian -uc -us"
   rescue
-    add_metrics({ :package_type => 'deb', :package_build_time => bench, :success => false }) if @build.is_jenkins_build == false
+    add_metrics({ :package_type => 'deb', :success => false }) if @build.is_jenkins_build == false
     post_metrics if @build.is_jenkins_build == false
     fail "Something went wrong. Hopefully the backscroll or #{results_dir}/#{@build.project}_#{@build.debversion}.build file has a clue."
   end
@@ -45,6 +45,7 @@ end
 
 task :build_deb, :deb_command, :cow do |t,args|
   bench = Benchmark.realtime do
+    puts '!In build_deb now!'
     deb_build = args.deb_command
     cow       = args.cow
     work_dir  = get_temp
