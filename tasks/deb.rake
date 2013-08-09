@@ -1,17 +1,13 @@
 def pdebuild args
-  bench = Benchmark.realtime do
-    results_dir = args[:work_dir]
-    cow         = args[:cow]
-    set_cow_envs(cow)
-    update_cow(cow)
-    sh "pdebuild  --configfile #{@build.pbuild_conf} \
-                  --buildresult #{results_dir} \
-                  --pbuilder cowbuilder -- \
-                  --basepath /var/cache/pbuilder/#{cow}/"
-    $?.success? or fail "Failed to build deb with #{cow}!"
-  end
-  puts 'In pdebuild! Adding metrics!'
-  puts "Finished building in: #{bench}"
+  results_dir = args[:work_dir]
+  cow         = args[:cow]
+  set_cow_envs(cow)
+  update_cow(cow)
+  sh "pdebuild  --configfile #{@build.pbuild_conf} \
+                --buildresult #{results_dir} \
+                --pbuilder cowbuilder -- \
+                --basepath /var/cache/pbuilder/#{cow}/"
+  $?.success? or fail "Failed to build deb with #{cow}!"
 end
 
 def update_cow(cow)
@@ -45,7 +41,6 @@ end
 
 task :build_deb, :deb_command, :cow do |t,args|
   bench = Benchmark.realtime do
-    puts '!In build_deb now!'
     deb_build = args.deb_command
     cow       = args.cow
     work_dir  = get_temp
@@ -67,6 +62,7 @@ task :build_deb, :deb_command, :cow do |t,args|
   # See 30_metrics.rake to see what this is doing
   add_metrics({ :package_type => 'deb', :package_build_time => bench }) if @build.is_jenkins_build == false
   post_metrics if @build.is_jenkins_build == false
+  puts '@@@ OUT!'
   puts "Finished building in: #{bench}"
 end
 
