@@ -11,7 +11,7 @@ def pdebuild args
     $?.success? or fail "Failed to build deb with #{cow}!"
   end
   puts 'In pdebuild! Adding metrics!'
-  add_metrics({ :package_type => 'deb', :package_build_time => bench}) if @build.is_jenkins_build == false
+  puts "Finished building in: #{bench}"
 end
 
 def update_cow(cow)
