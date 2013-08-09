@@ -1,13 +1,17 @@
 def pdebuild args
-  results_dir = args[:work_dir]
-  cow         = args[:cow]
-  set_cow_envs(cow)
-  update_cow(cow)
-  sh "pdebuild  --configfile #{@build.pbuild_conf} \
-                --buildresult #{results_dir} \
-                --pbuilder cowbuilder -- \
-                --basepath /var/cache/pbuilder/#{cow}/"
-  $?.success? or fail "Failed to build deb with #{cow}!"
+  bench = Benchmark.realtime do
+    results_dir = args[:work_dir]
+    cow         = args[:cow]
+    set_cow_envs(cow)
+    update_cow(cow)
+    sh "pdebuild  --configfile #{@build.pbuild_conf} \
+                  --buildresult #{results_dir} \
+                  --pbuilder cowbuilder -- \
+                  --basepath /var/cache/pbuilder/#{cow}/"
+    $?.success? or fail "Failed to build deb with #{cow}!"
+  end
+  add_metrics({ :package_type => 'deb', :package_build_time => bench}) if @build.is_jenkins_build == false
+  post_metrics if @build.is_jenkins_build == false
 end
 
 def update_cow(cow)

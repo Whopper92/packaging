@@ -1,7 +1,6 @@
 require 'yaml'
 require 'erb'
 require 'benchmark'
-require 'net/http'
 load File.expand_path('../build.rake', __FILE__)
 
 ##

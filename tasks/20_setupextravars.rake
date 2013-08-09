@@ -28,7 +28,10 @@ namespace :pl do
   end
 end
 
-@build.benchmark        = TRUE
+if @build.team == 'release' or @build.team == 'dev' or @build.team == 'dev-whopper'
+  @build.benchmark        = TRUE
+end
+
 @build.is_jenkins_build = false
 @build.metrics_server   = 'http://dagr.delivery.puppetlabs.net:4567/overview/metrics'
 

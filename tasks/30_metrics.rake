@@ -20,6 +20,7 @@ if @build.benchmark
   end
 
   def post_metrics
+      require 'net/http'
       @metrics.each do |metric|
         date               = metric[:date]
         package            = metric[:package]
